@@ -1,0 +1,95 @@
+<?php
+/**
+ * @file
+ * Tests for the Icon API: Field module.
+ */
+
+/**
+ * Class IconFieldTestCase
+ */
+class IconFieldTestCase extends IconTestCase {
+  var $content_type = NULL;
+
+  /**
+   * @return array
+   */
+  public static function getInfo() {
+    return array(
+      'name'        => 'Icon Field functionality',
+      'description' => 'Tests Icon Field functionality.',
+      'group'       => 'Icon API',
+    );
+  }
+
+  /**
+   * Setup a Drupal site for Icon API tests.
+   */
+  function setUp() {
+    parent::setUp(array('icon_field'));
+
+    // Create a content type.
+    $content_type       = $this->drupalCreateContentType();
+    $this->content_type = $content_type->name;
+
+    // Create a user.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer content types',
+      "create {$this->content_type} content",
+    ));
+  }
+
+  /**
+   * Test Icon field.
+   */
+  function testIconField() {
+    $this->drupalLogin($this->admin_user);
+
+    // Ensure the Icon field is available on the Manage fields page.
+    $this->drupalGet("admin/structure/types/manage/{$this->content_type}/fields");
+    $element = $this->xpath('//select[@name=:name]/option[@value=:value]', array(
+      ':name'  => 'fields[_add_new_field][type]',
+      ':value' => 'icon_field',
+    ));
+    $this->assert(!empty($element), t('Icon field is available on Manage fields page.'));
+
+    // Add Icon field to the content type.
+    $edit = array(
+      'fields[_add_new_field][label]'       => 'Icon',
+      'fields[_add_new_field][field_name]'  => 'icon',
+      'fields[_add_new_field][type]'        => 'icon_field',
+      'fields[_add_new_field][widget_type]' => 'icon_field',
+    );
+    $this->drupalPost("admin/structure/types/manage/{$this->content_type}/fields", $edit, t('Save'));
+
+    // Ensure that there are no field settings.
+    $this->assertText('Icon has no field settings.');
+    $this->drupalPost($this->url, array(), t('Save field settings'));
+
+    // Ensure that we are on the field 'Edit' page and the Icon selector is
+    // present.
+    $this->assertText('Updated field Icon field settings.');
+    $this->assertFieldByName('field_icon[und][0][icon]');
+    $this->drupalPost($this->url, array(), t('Save settings'));
+
+    // Ensure that the field configuration was saved.
+    $this->assertText('Saved Icon configuration.');
+
+    // Ensure that the field is on the node form.
+    $this->drupalGet("node/add/{$this->content_type}");
+    $this->assertFieldByName('field_icon[und][0][icon]');
+
+    // Create a node with an Icon.
+    $edit = array(
+      'title'                    => $this->randomName(),
+      'field_icon[und][0][icon]' => 'lullacons_pack1|folder-open-white',
+    );
+    $this->drupalPost("node/add/{$this->content_type}", $edit, t('Save'));
+
+    // Ensure Node contains icon field.
+    $element = $this->xpath('//div[contains(@class, :class)]//img[contains(@src, :src)]', array(
+      ':class' => 'field-name-field-icon',
+      ':src'   => 'lullacons/folder-open-white.png',
+    ));
+    $this->assert(!empty($element), t('Icon field is present on Node view.'));
+  }
+}

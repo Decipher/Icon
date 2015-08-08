@@ -1,0 +1,56 @@
+<?php
+/**
+ * @file
+ * Tests for the Icon API module.
+ */
+
+/**
+ * Class IconTestCase
+ */
+class IconTestCase extends DrupalWebTestCase {
+  var $admin_user = NULL;
+
+  /**
+   * Setup a Drupal site for Icon API tests.
+   */
+  function setUp() {
+    $modules = func_get_args();
+    if (isset($modules[0]) && is_array($modules[0])) {
+      $modules = $modules[0];
+    }
+    $modules[] = 'icon';
+    parent::setUp($modules);
+
+    $this->admin_user = $this->drupalCreateUser(array('administer icons'));
+  }
+}
+
+/**
+ * Class IconAPITestCase
+ */
+class IconAPITestCase extends IconTestCase {
+  /**
+   * @return array
+   */
+  public static function getInfo() {
+    return array(
+      'name'        => 'General functionality',
+      'description' => 'Test general Icon API functionality.',
+      'group'       => 'Icon API',
+    );
+  }
+
+  /**
+   *
+   */
+  function testGeneral() {
+    // Login as Administration user.
+    $this->drupalLogin($this->admin_user);
+
+    // Navigate to the Icons admin page.
+    $this->drupalGet('admin/config/media/icon');
+
+    // Ensure that the Lullacons: Pack 1 is present.
+    $this->assertText('Lullacons: Pack 1');
+  }
+}

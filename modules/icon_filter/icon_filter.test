@@ -1,0 +1,77 @@
+<?php
+/**
+ * @file
+ * Tests for the Icon API: Filter module.
+ */
+
+/**
+ * Class IconFilterTestCase
+ */
+class IconFilterTestCase extends IconTestCase {
+  var $content_type = NULL;
+
+  /**
+   * @return array
+   */
+  public static function getInfo() {
+    return array(
+      'name'        => 'Icon Filter functionality',
+      'description' => 'Tests Icon Filter functionality.',
+      'group'       => 'Icon API',
+    );
+  }
+
+  /**
+   * Setup a Drupal site for Icon API tests.
+   */
+  function setUp() {
+    parent::setUp(array('icon_filter'));
+
+    // Create a content type.
+    $content_type       = $this->drupalCreateContentType();
+    $this->content_type = $content_type->name;
+
+    // Create a user.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer filters',
+      "create {$this->content_type} content",
+    ));
+  }
+
+  /**
+   * Test Icon filter.
+   */
+  function testIconFilter() {
+    $this->drupalLogin($this->admin_user);
+
+    // Ensure Icon filter is available on Filtered HTML text format page.
+    $this->drupalGet('admin/config/content/formats/filtered_html');
+    $this->assertField('filters[icon][status]', t('Icon filter is available on the Filtered HTML text format page.'));
+
+    // Enable the icon filter on the Filtered HTML text format.
+    $edit = array(
+      'filters[icon][status]'                        => TRUE,
+      'filters[filter_html][settings][allowed_html]' => '<img>',
+    );
+    $this->drupalPost($this->url, $edit, t('Save configuration'));
+
+    // Ensure the icon filter is available on the node add form.
+    $this->drupalGet("node/add/{$this->content_type}");
+    $this->assertText('Convert [icon:%bundle:%icon] tags.');
+
+    // Create a node with an icon filter token.
+    $edit = array(
+      'title'               => $this->randomName(),
+      'body[und][0][value]' => '[icon:lullacons_pack1:folder-open-white]',
+    );
+    $this->drupalPost($this->url, $edit, t('Save'));
+
+    // Ensure Icon is present in content body.
+    $element = $this->xpath('//div[@id=:id]//div[contains(@class, :class)]//img[contains(@src, :src)]', array(
+      ':id'    => 'block-system-main',
+      ':class' => 'content',
+      ':src'   => 'lullacons/folder-open-white.png'
+    ));
+    $this->assert(!empty($element), t('Icon is present in content body.'));
+  }
+}

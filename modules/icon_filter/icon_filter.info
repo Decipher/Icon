@@ -3,5 +3,7 @@ description = Provides a filter for text fields to replace an icon token with ic
 core = 7.x
 package = Icon API
 
+files[] = icon_filter.test
+
 dependencies[] = filter
 dependencies[] = icon

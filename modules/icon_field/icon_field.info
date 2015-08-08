@@ -3,5 +3,7 @@ description = Provides a field for attaching an icon to a fieldable entity.
 core = 7.x
 package = Icon API
 
+files[] = icon_field.test
+
 dependencies[] = field
 dependencies[] = icon

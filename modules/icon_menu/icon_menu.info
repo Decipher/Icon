@@ -3,8 +3,7 @@ description = Provides icon integration with menu items.
 core = 7.x
 package = Icon API
 
-files[] = icon_menu.install
-files[] = icon_menu.module
+files[] = icon_menu.test
 
 dependencies[] = icon
 dependencies[] = menu

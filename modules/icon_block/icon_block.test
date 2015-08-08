@@ -1,0 +1,117 @@
+<?php
+/**
+ * @file
+ * Tests for the Icon API: Block module.
+ */
+
+/**
+ * Class IconBlockTestCase
+ */
+class IconBlockTestCase extends IconTestCase {
+  /**
+   * @return array
+   */
+  public static function getInfo() {
+    return array(
+      'name'        => 'Icon Block functionality',
+      'description' => 'Tests Icon Block functionality.',
+      'group'       => 'Icon API',
+    );
+  }
+
+  /**
+   * Setup a Drupal site for Icon API tests.
+   */
+  function setUp() {
+    parent::setUp(array('icon_block'));
+
+    // Create a user.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'access content',
+      'administer blocks',
+      'administer block icons',
+      'view icons'
+    ));
+  }
+
+  /**
+   * Returns the XPath element for each provided Icon block position.
+   *
+   * @param $position
+   *
+   * @return array|bool|SimpleXMLElement[]
+   */
+  function getIconBlockElement($position) {
+    $xpath     = '//div[@id=:id]';
+    $arguments = array(
+      ':id'  => 'block-system-navigation',
+      ':src' => 'lullacons/folder-open-white.png',
+    );
+
+    switch ($position) {
+      case 'title_before':
+        $xpath .= '//img[contains(@src, :src)]/following-sibling::h2';
+        break;
+
+      case 'title_after':
+        $xpath .= '//img[contains(@src, :src)]/preceding-sibling::h2';
+        break;
+
+      case 'title_inside_before':
+        $xpath .= '//h2//text()/preceding-sibling::img[contains(@src, :src)]';
+        break;
+
+      case 'title_inside_after':
+        $xpath .= '//h2//text()/following-sibling::img[contains(@src, :src)]';
+        break;
+
+      case 'content_before':
+        $xpath .= '//div[contains(@class, :class)]/*[1][contains(@src, :src)]';
+        $arguments[':class'] = 'content';
+        break;
+
+      case 'content_after':
+        $xpath .= '//div[contains(@class, :class)]/*[last()][contains(@src, :src)]';
+        $arguments[':class'] = 'content';
+        break;
+    }
+
+    return $this->xpath($xpath, $arguments);
+  }
+
+  /**
+   * Test Icon block and each position.
+   */
+  function testIconBlock() {
+    // Login as Administration user.
+    $this->drupalLogin($this->admin_user);
+
+    // Navigate to the Icons admin page.
+    $this->drupalGet('admin/structure/block/manage/system/navigation/configure');
+
+    // Ensure that the Icon selector is present.
+    $this->assertText('Select Icon', t('Icon selector is present in block configuration.'));
+
+    // Test each Icon block position.
+    $positions = array(
+      'title_before'        => t('before title'),
+      'title_after'         => t('after title'),
+      'title_inside_before' => t('before title (inside markup)'),
+      'title_inside_after'  => t('after title (inside markup)'),
+      'content_before'      => t('before content'),
+      'content_after'       => t('after content'),
+    );
+    foreach ($positions as $position => $description) {
+      // Add Icon and adjust position.
+      $edit = array(
+        'icon_selector[icon]'     => 'lullacons_pack1|folder-open-white',
+        'icon_selector[position]' => $position,
+      );
+      $this->drupalPost('admin/structure/block/manage/system/navigation/configure', $edit, t('Save block'));
+
+      // Ensure the Icon is present in specified position.
+      $element = $this->getIconBlockElement($position);
+      $this->assertTrue(!empty($element), t('Icon is present @position on the Navigation block.', array('@position' => $description)));
+    }
+  }
+}

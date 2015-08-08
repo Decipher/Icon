@@ -4,5 +4,4 @@ core = 7.x
 package = Icon API
 configure = admin/config/media/icon
 
-files[] = icon.install
-files[] = icon.module
+files[] = icon.test

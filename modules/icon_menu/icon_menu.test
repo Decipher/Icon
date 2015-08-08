@@ -1,0 +1,190 @@
+<?php
+/**
+ * @file
+ * Tests for the Icon API: Menu module.
+ */
+
+/**
+ * Class IconMenuTestCase
+ */
+class IconMenuTestCase extends IconTestCase {
+  var $edit_url = NULL;
+  var $mlid = NULL;
+
+  /**
+   * @return array
+   */
+  public static function getInfo() {
+    return array(
+      'name'        => 'Icon Menu functionality',
+      'description' => 'Tests Icon Menu functionality.',
+      'group'       => 'Icon API',
+    );
+  }
+
+  /**
+   * Setup a Drupal site for Icon API tests.
+   */
+  function setUp() {
+    parent::setUp(array('icon_menu'));
+
+    // Create a user.
+    $this->admin_user = $this->drupalCreateUser(array(
+      'administer menu',
+      'administer menu icons',
+      'create page content',
+    ));
+  }
+
+  /**
+   * Test Icon menu.
+   */
+  function testIconMenu() {
+    $this->drupalLogin($this->admin_user);
+
+    // Navigate to the Main menu 'List links' page.
+    $this->drupalGet('admin/structure/menu/manage/main-menu');
+
+    // Edit the 'Home' menu link.
+    $this->clickLink('edit');
+
+    // Get the menu link id.
+    $parts          = explode('/', $this->url);
+    $this->mlid     = $parts[7];
+    $this->edit_url = $this->url;
+
+    //Ensure that the Icon selector is present.
+    $this->assertField('options[icon][icon]', t('Icon selector is present.'));
+
+    // Add an icon to the 'Home' menu link.
+    $edit = array(
+      'options[icon][icon]' => 'lullacons_pack1|folder-open-white',
+    );
+    $this->drupalPost($this->edit_url, $edit, t('Save'));
+
+    // Ensure that the Icon before the title on the 'Home' menu link.
+    $element = $this->xpath('//ul[@id=:id]/li[contains(@class, :class)]/a/text()/preceding-sibling::img[contains(@src, :src)]', array(
+      ':id'    => 'main-menu-links',
+      ':class' => "menu-{$this->mlid}",
+      ':src'   => 'lullacons/folder-open-white.png',
+    ));
+    $this->assert(!empty($element), t('Icon is present before the title of menu link.'));
+
+    // Change the position of the icon.
+    $edit = array(
+      'options[icon][position]' => 'title_after',
+    );
+    $this->drupalPost($this->edit_url, $edit, t('Save'));
+
+    // Ensure that the Icon after the title on the 'Home' menu link.
+    $element = $this->xpath('//ul[@id=:id]/li[contains(@class, :class)]/a/text()/following-sibling::img[contains(@src, :src)]', array(
+      ':id'    => 'main-menu-links',
+      ':class' => "menu-{$this->mlid}",
+      ':src'   => 'lullacons/folder-open-white.png',
+    ));
+    $this->assert(!empty($element), t('Icon is present after the title of menu link.'));
+  }
+
+  /**
+   * Test Icon menu breadcrumb behavior.
+   */
+  function testIconMenuBreadcrumbs() {
+    $this->drupalLogin($this->admin_user);
+
+    // Navigate to the Navigation 'List links' page.
+    $this->drupalGet('admin/structure/menu/manage/navigation');
+
+    // Edit the 'Add content' menu link.
+    $this->clickLink('edit');
+    $edit_url = $this->url;
+
+    // Add an icon to the 'Add content' menu link.
+    $edit = array(
+      'options[icon][icon]' => 'lullacons_pack1|folder-open-white',
+    );
+    $this->drupalPost($edit_url, $edit, t('Save'));
+
+    // Navigate to the 'Create page' page.
+    $this->drupalGet('node/add/page');
+
+    // Ensure icon isn't in the breadcrumb.
+    $xpath     = '//div[@id=:id]//a[@href=:href]/text()/preceding-sibling::img[contains(@src, :src)]';
+    $arguments = array(
+      ':id'   => 'breadcrumb',
+      ':href' => '/node/add',
+      ':src'  => 'lullacons/folder-open-white.png',
+    );
+    $element   = $this->xpath($xpath, $arguments);
+    $this->assert(empty($element), t('Icon is not present in the breadcrumb.'));
+
+    // Add an icon to the 'Add content' menu link.
+    $edit = array(
+      'options[icon][breadcrumb]' => TRUE,
+    );
+    $this->drupalPost($edit_url, $edit, t('Save'));
+
+    // Navigate to the 'Create page' page.
+    $this->drupalGet('node/add/page');
+
+    // Ensure icon  in the breadcrumb.
+    $element = $this->xpath($xpath, $arguments);
+    $this->assert(!empty($element), t('Icon is present in the breadcrumb.'));
+  }
+
+  /**
+   * Test Icon menu title wrapper behavior.
+   */
+  function testIconMenuTitleWrapper() {
+    $this->drupalLogin($this->admin_user);
+
+    // Add an icon to the 'Home' menu link.
+    $edit = array(
+      'options[icon][icon]' => 'lullacons_pack1|folder-open-white',
+    );
+    $this->drupalPost($this->edit_url, $edit, t('Save'));
+
+    // Ensure that there's no title wrapper on the 'Home' menu link.
+    $xpath     = '//div[@id=:id]//li[contains(@class, :ml_class)]//img[contains(@src, :src)]/following-sibling::';
+    $arguments = array(
+      ':id'       => 'main-menu',
+      ':ml_class' => "menu-{$this->mlid}",
+      ':src'      => 'lullacons/folder-open-white.png',
+      ':class'    => 'title',
+    );
+    $element   = $this->xpath($xpath . '*', $arguments);
+    $this->assert(empty($element), t('Menu item has no title wrapper.'));
+
+    // Add a title wrapper to the 'Home' menu link.
+    $edit = array(
+      'options[icon][title_wrapper]' => TRUE,
+    );
+    $this->drupalPost($this->edit_url, $edit, t('Save'));
+
+    // Ensure that there's a title wrapper on the 'Home' menu link.
+    $element = $this->xpath($xpath . 'span[@class=:class]', $arguments);
+    $this->assert(!empty($element), t('Menu item has a title wrapper.'));
+
+    // Change the 'Home' menu link title wrapper to a 'div'.
+    $edit = array(
+      'options[icon][title_wrapper_element]' => 'div',
+    );
+    $this->drupalPost($this->edit_url, $edit, t('Save'));
+
+    // Ensure that there's a div title wrapper on the 'Home' menu link.
+    $element = $this->xpath($xpath . 'div[@class=:class]', $arguments);
+    $this->assert(!empty($element), t('Menu item has a "div" title wrapper.'));
+
+    // Change the 'Home' menu link title wrapper class.
+    $name = $this->randomName();
+    $edit = array(
+      'options[icon][title_wrapper_class]' => $name,
+    );
+    $this->drupalPost($this->edit_url, $edit, t('Save'));
+
+    // Ensure that there's a title wrapper with a custom class on the 'Home'
+    // menu link.
+    $arguments[':class'] = $name;
+    $element             = $this->xpath($xpath . 'div[@class=:class]', $arguments);
+    $this->assert(!empty($element), t('Menu item has a title wrapper with custom class.'));
+  }
+}
